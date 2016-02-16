@@ -1,6 +1,12 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 import pytest
+import datetime
+
+from pylarion.test_run import TestRun
+from pylarion.exceptions import PylarionLibException
+
 from _pytest.runner import runtestprotocol
-from _pytest.main import EXIT_OK, EXIT_TESTSFAILED
 
 
 def pytest_configure(config):
@@ -11,24 +17,36 @@ def pytest_configure(config):
 
 def pytest_addoption(parser):
     group = parser.getgroup('Polarion')
+    group.addoption('--polarion-project',
+                    default=None,
+                    action='store',
+                    help='Polarion project name (default: %default)')
     group.addoption('--polarion-run',
                     default=None,
                     action='store',
                     help='Polarion TestRun name (default: %default)')
 
 
-def polarion_collect_items(polarion_run):
-    print 'Collecting test cases IDs from', polarion_run
-    # FIXME: collect items from polarion using pylarion
-    items = ['polarion-id-foo-good', 'polarion-id-foo-bed']
+def polarion_collect_items(config):
+    polarion_run = config.getoption('polarion_run')
+    polarion_proj = config.getoption('polarion_project')
+    tr = TestRun(project_id=polarion_proj, test_run_id=polarion_run)
+
+    # caching TestRun
+    config.option.test_run_obj = tr
+
+    items = {rec.test_case_id: rec for rec in tr.records}
     if not items:
         pytest.fail('Failed to collect items from polarion {} run'.format(polarion_run))
+
+    # caching test records
+    config.option.test_run_records = items
     return items
 
 
 def pytest_collection_modifyitems(items, config):
     if config.getoption('polarion_run') is not None:
-        politems = polarion_collect_items(config.getoption('polarion_run'))
+        politems = polarion_collect_items(config)
         remaining = [colitem for colitem in items if colitem.get_marker('polarion_id').args[0] in politems]
         deselected = set(items) - set(remaining)
         if deselected:
@@ -36,41 +54,57 @@ def pytest_collection_modifyitems(items, config):
             items[:] = remaining
 
 
-def pytest_sessionstart(session):
-    # move TestRun status to IN PROGRESS
-    # FIXME: use pylarion to notify polarion run status
-    print "Test Run IN PROGRESS"
-
-
 def pytest_sessionfinish(session, exitstatus):
-    # move TestRun status to DONE
-    if exitstatus in [EXIT_OK, EXIT_TESTSFAILED]:
-        # FIXME: use pylarion to notify polarion run status
-        print "Test Run DONE"
-    # TODO: generate a report
+    # TODO: Generate a final report
+    pass
 
 
-# @pytest.mark.hookwrapper
+def polarion_set_record(tr, tc):
+    try:
+        tr.add_test_record_by_object(tc)
+    except PylarionLibException:
+        tr.reload()
+        tr.update_test_record_by_object(tc.test_case_id, tc)
+
+
 def pytest_runtest_protocol(item, nextitem):
-    reports = runtestprotocol(item, nextitem=nextitem)
-    # yield True
-    for report in reports:
-        if report.when == 'call':
-            # move test case to the relevant status
-            # FIXME: use pylarion to notify polarion case status
-            print '\n%s --- %s --- %s' % (item.name, item.get_marker("polarion_id"), report.outcome)
-            print "Test Case DONE"
-    # return True
+    if item.config.getoption('polarion_run') is not None:
+        reports = runtestprotocol(item, nextitem=nextitem)
+
+        # get polarion objects
+        tr = item.config.getoption('test_run_obj')
+        tc = item.config.getoption('test_run_records')[item.get_marker("polarion_id").args[0]]
+
+        for report in reports:
+            if report.when == 'call':
+                # print '\n%s --- %s --- %s' % (item.name, item.get_marker("polarion_id"), report.outcome)
+
+                # Build up traceback massage
+                trace = ''
+                if not report.passed:
+                    trace = '{0}:{1}\n{2}'.format(report.location, report.when, report.longrepr)
+
+                tc.result = report.outcome
+                tc.executed = datetime.datetime.now()
+                tc.executed_by = tc.logged_in_user_id
+                tc.duration = report.duration
+                tc.comment = trace
+                polarion_set_record(tr, tc)
+            elif report.when == 'setup' and report.skipped:
+                tc.result = 'blocked'
+                tc.executed_by = tc.logged_in_user_id
+                tc.comment = item.get_marker('skipif').kwargs['reason']
+                polarion_set_record(tr, tc)
+        # Final polarion record update
+        return True
 
 
-@pytest.mark.hookwrapper
-def pytest_runtest_logreport(report):
-    if report.when == 'setup':
-        # move test case to IN PROGRESS
-        # FIXME: use pylarion to notify polarion case status
-        print "Test Case IN PROGRESS"
-    yield
-    if report.outcome == "skipped":
-        # move test case to relevant mode
-        # FIXME: use pylarion to notify polarion case status
-        print "Test Case IGNORED"
+# Currently unable to post only comment since it seem to require status as well
+# @pytest.mark.tryfirst
+# def pytest_runtest_setup(item):
+#     if item.config.getoption('polarion_run') is not None:
+#         tr = item.config.getoption('test_run_obj')
+#         tc = item.config.getoption('test_run_records')[item.get_marker("polarion_id").args[0]]
+#         tc.comment = 'WIP'
+#         polarion_set_record(tr, tc)
+#     return

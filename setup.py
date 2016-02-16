@@ -10,9 +10,10 @@ setup(
     entry_points={
         'pytest11': [
             'pytest_polarion = pytest_polarion.plugin',
+            'pytest_polarion.template = pytest_polarion.template',
         ]
                    },
     install_requires=['pytest>=2.4.2'],
     classifiers=['Private :: Do Not Upload'],  # hack to avoid uploading to pypi
-    setup_requires=['setuptools_scm'],
+    setup_requires=open('requirements.txt').readlines(),
 )
