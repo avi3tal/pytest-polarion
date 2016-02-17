@@ -2,4 +2,4 @@ pytest
 tox
 six
 setuptools_scm
-jenkinsapi
+python-jenkins
