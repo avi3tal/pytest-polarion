@@ -16,4 +16,5 @@ setup(
     install_requires=['pytest>=2.4.2'],
     classifiers=['Private :: Do Not Upload'],  # hack to avoid uploading to pypi
     setup_requires=open('requirements.txt').readlines(),
+    scripts=['pytest-polarion/collector.py']
 )
