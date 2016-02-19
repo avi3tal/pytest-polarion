@@ -1,3 +1,6 @@
+===============
+pytest-polarion
+===============
 pytest-polarion is a pytest plugin to collect test cases and report result in realtime.
 The plugin will support different Polarion modes such as executing specific TestRun or even generate a TestRun out of given Template.
 It will also support parametrizing test runs out of Template.
@@ -15,3 +18,21 @@ Also at the end of entire session execution, pytest-polarion will be capable of 
 
 The awesome part of this plugin is the fact that it can simply triggered by Jenkins job so we can basically define a CI process to collect all TestRuns that are in "Not Run" status
 and make it execute/report automatically.
+
+
+Documentation
+-------------
+...
+
+Commands
+--------
+::
+    $ py.test --polarion-project <name> --polarion-run <run name>
+    $ py.test --polarion-project <name> --polarion-template <temp name> --field "build=5.5.2" --field "provider=OSE"
+
+
+
+
+Authors
+-------
+![Avi Tal](atal@redhat.com)
