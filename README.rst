@@ -26,12 +26,15 @@ Documentation
 
 Commands
 --------
-::
+Trigger test from TestRun::
+
     $ py.test --polarion-project <name> --polarion-run <run name>
+
+Generate TestRun from template and trigger automatically::
+
     $ py.test --polarion-project <name> --polarion-template <temp name> --field "build=5.5.2" --field "provider=OSE"
 
-
-
+Note that ``--field`` is an append type argument, supporting multiple fields
 
 Authors
 -------
