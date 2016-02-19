@@ -38,4 +38,4 @@ Note that ``--field`` is an append type argument, supporting multiple fields
 
 Authors
 -------
-![Avi Tal](atal@redhat.com)
+`Avi Tal <atal@redhat.com>`_
