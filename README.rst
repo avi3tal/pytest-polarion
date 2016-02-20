@@ -8,7 +8,7 @@ It will also support parametrizing test runs out of Template.
 Basically, the plugin is divided to two phases:
 The first phase related to how pytest collect test cases. Originally, pytest uses specific test pattern while reading filesystem (test files and test directories).
 This plugin will extend this pattern matcher and compare the collected test cases with the test cases assign to given TestRun.
-This way, we'll be able to define a TestRun along with the desired test cases and then call "py.test --polarion-run <run name>" to execute specifically what the Run describes.
+This way, we'll be able to define a TestRun along with the desired test cases and then call ``py.test --polarion-run <run name>`` to execute specifically what the Run describes.
 
 The second phase is actually the reporting engine that executed in realtime. The intention is to show WIP report to TestRun and test cases.
 Meaning that when executing pytest with specific TestRun, assuming test run status is "Not Run", the status will immediately moved to "In Progress" and also
